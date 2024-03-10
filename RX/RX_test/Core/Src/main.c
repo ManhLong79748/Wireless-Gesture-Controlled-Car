@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -53,8 +54,11 @@ SPI_HandleTypeDef hspi1;
 
 TIM_HandleTypeDef htim1;
 
+TaskHandle_t Task1_Handle;
 /* USER CODE BEGIN PV */
+TaskHandle_t Task2_Handle;
 
+TaskHandle_t Task3_Handle;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -62,8 +66,12 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM1_Init(void);
-/* USER CODE BEGIN PFP */
+void Start_Task1(void * Param);
 
+/* USER CODE BEGIN PFP */
+void Start_Task2 (void * Param);
+
+void Start_Task3 (void * Param);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -129,73 +137,48 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* definition and creation of defaultTask */
+//  osThreadDef(Task1, Start_Task1, osPriorityNormal, 0, 128);
+//  Task1_Handle = osThreadCreate(osThread(Task1), NULL);
+	
+	xTaskCreate(Start_Task1, "Task1", 128, NULL, osPriorityNormal,Task1_Handle);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+	
+	xTaskCreate(Start_Task2, "Task2", 128, NULL, osPriorityAboveNormal,Task2_Handle);
+	
+	xTaskCreate(Start_Task3, "Task3", 128, NULL, osPriorityAboveNormal,Task3_Handle);
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
-		if(NRF24_available())
-		{
-		NRF24_read(myRxData, 32);				
-		}
-		
-		
-		Rx_command = myRxData[0];
-		Speed_index = myRxData[1];
-		if (Speed_index ==0) Speed =0;
-		else Speed = Speed_index *250-1;	
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,Speed);
-		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2,Speed);
-		
-		if (Rx_command ==1)// move forward
-		{
-			RIGHT_FORWARD(1);
-			LEFT_FORWARD(1);	
-			RIGHT_BACKWARD(0);
-			LEFT_BACKWARD(0);
-		}
-		else if (Rx_command ==2)// move reverse
-		{
-			RIGHT_FORWARD(0);
-			LEFT_FORWARD(0);
-			RIGHT_BACKWARD(1);
-			LEFT_BACKWARD (1);
-		}
-		else if (Rx_command ==3)// left
-		{
-			RIGHT_FORWARD(1);
-			LEFT_BACKWARD(1);
-			RIGHT_BACKWARD(0);
-			LEFT_FORWARD(0);
-		}
-		else if (Rx_command ==4) // right
-		{
-			LEFT_FORWARD(1);
-			RIGHT_BACKWARD(1);
-			LEFT_BACKWARD(0);
-			RIGHT_FORWARD(0);
-		}
-		else if (Rx_command ==0)
-		{
-			LEFT_FORWARD(0);
-			RIGHT_BACKWARD(0);
-			LEFT_BACKWARD(0);
-			RIGHT_FORWARD(0);	
-		}
-		else
-		{
-			LEFT_FORWARD(0);
-			RIGHT_BACKWARD(0);
-			LEFT_BACKWARD(0);
-			RIGHT_FORWARD(0);	
-		}
-	
-		
-		
-		
-		
+    /* USER CODE BEGIN 3 */	
   }
   /* USER CODE END 3 */
 }
@@ -406,7 +389,119 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+void Start_Task2(void  * Param)
+{
+
+  while(1)
+  {
+		if (Speed_index ==0) Speed =0;
+		else Speed = Speed_index *250-1;	
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,Speed);
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2,Speed);
+		
+    osDelay(1);
+  }
+
+}
+
+void Start_Task3(void  * Param)
+{
+
+  while(1)
+  {
+		if(NRF24_available())
+		{
+		NRF24_read(myRxData, 32);				
+		}	
+		Rx_command = myRxData[0];
+		Speed_index = myRxData[1];
+		
+    osDelay(1);
+  }
+
+}
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void Start_Task1(void  * Param)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {	
+		if (Rx_command ==1)// move forward
+		{
+			RIGHT_FORWARD(1);
+			LEFT_FORWARD(1);	
+			RIGHT_BACKWARD(0);
+			LEFT_BACKWARD(0);
+		}
+		else if (Rx_command ==2)// move reverse
+		{
+			RIGHT_FORWARD(0);
+			LEFT_FORWARD(0);
+			RIGHT_BACKWARD(1);
+			LEFT_BACKWARD (1);
+		}
+		else if (Rx_command ==3)// left
+		{
+			RIGHT_FORWARD(1);
+			LEFT_BACKWARD(1);
+			RIGHT_BACKWARD(0);
+			LEFT_FORWARD(0);
+		}
+		else if (Rx_command ==4) // right
+		{
+			LEFT_FORWARD(1);
+			RIGHT_BACKWARD(1);
+			LEFT_BACKWARD(0);
+			RIGHT_FORWARD(0);
+		}
+		else if (Rx_command ==0)
+		{
+			LEFT_FORWARD(0);
+			RIGHT_BACKWARD(0);
+			LEFT_BACKWARD(0);
+			RIGHT_FORWARD(0);	
+		}
+		else
+		{
+			LEFT_FORWARD(0);
+			RIGHT_BACKWARD(0);
+			LEFT_BACKWARD(0);
+			RIGHT_FORWARD(0);	
+		}
+    osDelay(1);	
+  }
+  /* USER CODE END 5 */
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM4 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM4) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
